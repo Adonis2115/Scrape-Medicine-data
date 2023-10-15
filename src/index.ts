@@ -227,8 +227,8 @@ async function getDrugTypeForCombination(url: string) {
   return drugType;
 }
 
-async () => {
+(async () => {
   //   await main();
-  await getSingleGenericDrugs();
-  await getCombinationGenericDrugs();
-};
+  getSingleGenericDrugs();
+  getCombinationGenericDrugs();
+})();
