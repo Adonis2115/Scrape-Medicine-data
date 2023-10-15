@@ -1,4 +1,6 @@
 import puppeteer from "puppeteer";
+import { db } from "./db";
+import { drug } from "./db/schema";
 
 (async () => {
   const browser = await puppeteer.launch({ headless: "new" });
@@ -16,7 +18,9 @@ import puppeteer from "puppeteer";
     : [];
 
   if (listItems.length && listItems[0] !== null) {
-    getDrugs(listItems[0]);
+    for (const alphabetIndex of listItems) {
+      if (alphabetIndex) await getDrugs(alphabetIndex);
+    }
   }
 
   await browser.close();
@@ -60,11 +64,16 @@ async function getDrugs(alphabet: string) {
 
     return tableData;
   });
-
-  // Print the table data to the console
-  console.log(tableData);
-  console.log(tableData.length);
-
+  let drugRecords = [];
+  for (const row of tableData) {
+    drugRecords.push({
+      name: row[1],
+      single_generic_url: row[3],
+      combination_generic_url: row[4],
+    });
+  }
+  console.log(drugRecords);
+  await db.insert(drug).values(drugRecords);
   await browser.close();
 }
 
