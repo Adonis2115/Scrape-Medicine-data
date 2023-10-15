@@ -1,7 +1,7 @@
 import "dotenv/config";
 import puppeteer from "puppeteer";
 import { db } from "./db";
-import { drug, single_generic } from "./db/schema";
+import { combination_generic, drug, single_generic } from "./db/schema";
 
 // (async () => {
 //   await db.delete(drug);
@@ -130,9 +130,61 @@ async function getSingleGenericDrugs() {
     }
   }
 }
-getSingleGenericDrugs();
-// function to get all generic combination  for drug
 
+async function getCombinationGenericDrugs() {
+  const drugs = await db.select().from(drug);
+  const browser = await puppeteer.launch({ headless: "new" });
+  const page = await browser.newPage();
+  for (const drugRecord of drugs) {
+    if (drugRecord.combination_generic_url) {
+      await page.goto(drugRecord.combination_generic_url);
+      await page.setViewport({ width: 1080, height: 1024 });
+      const tableData = await page.evaluate(() => {
+        const table = document.querySelector(".tblgrn");
+        const tableData = [];
+
+        // Skip the first element which is the table head
+        const tableRows = Array.from(table!.querySelectorAll("tr"));
+        tableRows.shift();
+
+        for (const row of tableRows) {
+          const rowData = [];
+
+          for (const cell of row.querySelectorAll("td")) {
+            if (cell.textContent && row.querySelectorAll("td").length > 1) {
+              if (cell.textContent.trim() === "-") rowData.push(null);
+              else if (cell.textContent.trim() === "View Price")
+                rowData.push(cell.querySelector("a")!.href);
+              else rowData.push(cell.textContent.replace("\n", "").trim());
+            }
+          }
+
+          if (rowData.length > 0) {
+            tableData.push(rowData);
+          }
+        }
+
+        return tableData;
+      });
+      let combinationGenericRecords = [];
+      for (const row of tableData) {
+        const price = await getPrice(row[4]!);
+        const drugType = await getDrugTypeForCombination(row[4]!);
+        combinationGenericRecords.push({
+          name: row[1],
+          manufacturer: row[3],
+          constituent_drugs: row[2]!.split(/\s*?\+\s*?/),
+          price: price,
+          type: drugType,
+          price_url: row[4],
+          drug_id: drugRecord.id,
+        });
+      }
+      await db.insert(combination_generic).values(combinationGenericRecords);
+    }
+  }
+}
+getCombinationGenericDrugs();
 // get price, stregnth, units for later
 async function getPrice(priceUrl: string) {
   const browser = await puppeteer.launch({ headless: "new" });
@@ -151,4 +203,25 @@ async function getPrice(priceUrl: string) {
   console.log(price!.replace(/,/g, ""));
   await browser.close();
   return price!.replace(/,/g, "");
+}
+
+async function getDrugTypeForCombination(url: string) {
+  const browser = await puppeteer.launch({ headless: "new" });
+  const page = await browser.newPage();
+  await page.goto(url);
+  await page.setViewport({ width: 1080, height: 1024 });
+  const element = await page.$("tr td h3");
+
+  // Get the text content of the element.
+  const stringWithType = element
+    ? await element.evaluate((element) => element.textContent)
+    : null;
+
+  // Close the browser.
+  const stringWithTypeArray = stringWithType?.split(" ");
+  const drugType =
+    stringWithTypeArray![stringWithTypeArray!?.length - 1].trim();
+  console.log(drugType);
+  await browser.close();
+  return drugType;
 }
