@@ -1,0 +1,29 @@
+{
+  "name": "medicine-data",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsc && node dist/src/index.js",
+    "dev": "nodemon src/index.ts",
+    "migration:generate": "drizzle-kit generate:pg --schema=./src/db/schema.ts",
+    "migration:push": "node -r esbuild-register ./src/db/migrate.ts",
+    "migrate": "drizzle-kit generate:pg --schema=./src/db/schema.ts && node -r esbuild-register ./src/db/migrate.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/pg": "^8.10.5",
+    "drizzle-kit": "^0.19.13",
+    "esbuild": "^0.19.4",
+    "esbuild-register": "^3.5.0",
+    "ts-node": "^10.9.1"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "drizzle-orm": "^0.28.6",
+    "pg": "^8.11.3",
+    "postgres": "^3.4.0"
+  }
+}
