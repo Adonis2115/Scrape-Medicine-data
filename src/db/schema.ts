@@ -1,4 +1,5 @@
 import {
+  boolean,
   integer,
   numeric,
   pgTable,
@@ -19,6 +20,8 @@ export const drug = pgTable("drug", {
   name: text("name"),
   single_generic_url: text("single_generic_url"),
   combination_generic_url: text("combination_generic_url"),
+  processed_single: boolean("processed_single").default(false),
+  processed_combination: boolean("processed_combination").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

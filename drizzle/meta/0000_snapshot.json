@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "ba75c3bf-962e-4aae-94e9-db6281b03dbe",
+  "id": "078bf104-a9d9-4213-9ca6-8aa0019111f7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "combination_generic": {
@@ -40,7 +40,7 @@
         },
         "type": {
           "name": "type",
-          "type": "type",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -111,6 +111,20 @@
           "primaryKey": false,
           "notNull": false
         },
+        "processed_single": {
+          "name": "processed_single",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "processed_combination": {
+          "name": "processed_combination",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -154,7 +168,7 @@
         },
         "type": {
           "name": "type",
-          "type": "type",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -198,16 +212,7 @@
       "uniqueConstraints": {}
     }
   },
-  "enums": {
-    "type": {
-      "name": "type",
-      "values": {
-        "tablet": "tablet",
-        "capsule": "capsule",
-        "syrup": "syrup"
-      }
-    }
-  },
+  "enums": {},
   "schemas": {},
   "_meta": {
     "schemas": {},

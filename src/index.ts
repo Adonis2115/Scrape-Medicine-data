@@ -44,7 +44,7 @@ async function getDrugs(alphabet: string) {
     const tableData = [];
 
     // Skip the first element which is the table head
-    const tableRows = Array.from(table!.querySelectorAll("tr"));
+    const tableRows = table ? Array.from(table.querySelectorAll("tr")) : [];
     tableRows.shift();
 
     for (const row of tableRows) {
@@ -74,10 +74,11 @@ async function getDrugs(alphabet: string) {
       combination_generic_url: row[4],
     });
   }
-  await db.insert(drug).values(drugRecords);
+  if (drugRecords.length) await db.insert(drug).values(drugRecords);
   await browser.close();
 }
 
+// some pages are not opening and redirecting back to main page
 async function getSingleGenericDrugs() {
   const drugs = await db
     .select()
@@ -86,6 +87,7 @@ async function getSingleGenericDrugs() {
   const browser = await puppeteer.launch({ headless: "new" });
   const page = await browser.newPage();
   for (const drugRecord of drugs) {
+    console.log(`Single: ${drugRecord.id}`);
     if (drugRecord.single_generic_url) {
       await page.goto(drugRecord.single_generic_url);
       await page.setViewport({ width: 1080, height: 1024 });
@@ -94,7 +96,7 @@ async function getSingleGenericDrugs() {
         const tableData = [];
 
         // Skip the first element which is the table head
-        const tableRows = Array.from(table!.querySelectorAll("tr"));
+        const tableRows = table ? Array.from(table.querySelectorAll("tr")) : [];
         tableRows.shift();
 
         for (const row of tableRows) {
@@ -128,12 +130,14 @@ async function getSingleGenericDrugs() {
           drug_id: drugRecord.id,
         });
       }
-      await db.insert(single_generic).values(singleGenericRecords);
+      if (singleGenericRecords.length)
+        await db.insert(single_generic).values(singleGenericRecords); // make a transaction to mark processed true
     }
   }
   await browser.close();
 }
 
+// some pages are not opening and redirecting back to main page
 async function getCombinationGenericDrugs() {
   const drugs = await db
     .select()
@@ -142,6 +146,7 @@ async function getCombinationGenericDrugs() {
   const browser = await puppeteer.launch({ headless: "new" });
   const page = await browser.newPage();
   for (const drugRecord of drugs) {
+    console.log(`Combination: ${drugRecord.id}`);
     if (drugRecord.combination_generic_url) {
       await page.goto(drugRecord.combination_generic_url);
       await page.setViewport({ width: 1080, height: 1024 });
@@ -150,7 +155,7 @@ async function getCombinationGenericDrugs() {
         const tableData = [];
 
         // Skip the first element which is the table head
-        const tableRows = Array.from(table!.querySelectorAll("tr"));
+        const tableRows = table ? Array.from(table.querySelectorAll("tr")) : [];
         tableRows.shift();
 
         for (const row of tableRows) {
@@ -186,7 +191,8 @@ async function getCombinationGenericDrugs() {
           drug_id: drugRecord.id,
         });
       }
-      await db.insert(combination_generic).values(combinationGenericRecords);
+      if (combinationGenericRecords)
+        await db.insert(combination_generic).values(combinationGenericRecords); // transaction
     }
   }
   await browser.close();
