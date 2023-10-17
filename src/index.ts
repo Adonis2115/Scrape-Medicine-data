@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { isNotNull } from "drizzle-orm";
+import { Placeholder, SQL, and, eq, isNotNull, sql } from "drizzle-orm";
 import puppeteer from "puppeteer";
 import { db } from "./db";
 import { combination_generic, drug, single_generic } from "./db/schema";
@@ -83,7 +83,9 @@ async function getSingleGenericDrugs() {
   const drugs = await db
     .select()
     .from(drug)
-    .where(isNotNull(drug.single_generic_url));
+    .where(
+      and(isNotNull(drug.single_generic_url), eq(drug.processed_single, false))
+    );
   const browser = await puppeteer.launch({ headless: "new" });
   const page = await browser.newPage();
   for (const drugRecord of drugs) {
@@ -118,7 +120,59 @@ async function getSingleGenericDrugs() {
 
         return tableData;
       });
-      let singleGenericRecords = [];
+      let singleGenericRecords:
+        | {
+            id?: number | SQL<unknown> | Placeholder<string, any> | undefined;
+            name?:
+              | string
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+            createdAt?:
+              | SQL<unknown>
+              | Date
+              | Placeholder<string, any>
+              | undefined;
+            manufacturer?:
+              | string
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+            price?:
+              | string
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+            type?:
+              | string
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+            price_url?:
+              | string
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+            drug_id?:
+              | number
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+          }[]
+        | {
+            name: string | null;
+            manufacturer: string | null;
+            price: string;
+            type: string | null;
+            price_url: string | null;
+            drug_id: number;
+          }[] = [];
       for (const row of tableData) {
         const price = await getPrice(row[4]!);
         singleGenericRecords.push({
@@ -130,8 +184,14 @@ async function getSingleGenericDrugs() {
           drug_id: drugRecord.id,
         });
       }
-      if (singleGenericRecords.length)
-        await db.insert(single_generic).values(singleGenericRecords); // make a transaction to mark processed true
+      if (singleGenericRecords.length) {
+        await db.transaction(async (tx) => {
+          await tx.insert(single_generic).values(singleGenericRecords);
+          await tx
+            .update(drug)
+            .set({ processed_single: sql`${drug.processed_single} true` });
+        });
+      }
     }
   }
   await browser.close();
@@ -142,7 +202,12 @@ async function getCombinationGenericDrugs() {
   const drugs = await db
     .select()
     .from(drug)
-    .where(isNotNull(drug.combination_generic_url));
+    .where(
+      and(
+        isNotNull(drug.combination_generic_url),
+        eq(drug.processed_combination, false)
+      )
+    );
   const browser = await puppeteer.launch({ headless: "new" });
   const page = await browser.newPage();
   for (const drugRecord of drugs) {
@@ -177,7 +242,66 @@ async function getCombinationGenericDrugs() {
 
         return tableData;
       });
-      let combinationGenericRecords = [];
+      let combinationGenericRecords:
+        | {
+            id?: number | SQL<unknown> | Placeholder<string, any> | undefined;
+            name?:
+              | string
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+            createdAt?:
+              | SQL<unknown>
+              | Date
+              | Placeholder<string, any>
+              | undefined;
+            manufacturer?:
+              | string
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+            price?:
+              | string
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+            type?:
+              | string
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+            price_url?:
+              | string
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+            drug_id?:
+              | number
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+            constituent_drugs?:
+              | string[]
+              | SQL<unknown>
+              | Placeholder<string, any>
+              | null
+              | undefined;
+          }[]
+        | {
+            name: string | null;
+            manufacturer: string | null;
+            constituent_drugs: string[];
+            price: string;
+            type: string;
+            price_url: string | null;
+            drug_id: number;
+          }[] = [];
       for (const row of tableData) {
         const price = await getPrice(row[4]!);
         const drugType = await getDrugTypeForCombination(row[4]!);
@@ -191,8 +315,16 @@ async function getCombinationGenericDrugs() {
           drug_id: drugRecord.id,
         });
       }
-      if (combinationGenericRecords)
-        await db.insert(combination_generic).values(combinationGenericRecords); // transaction
+      if (combinationGenericRecords.length) {
+        await db.transaction(async (tx) => {
+          await tx
+            .insert(combination_generic)
+            .values(combinationGenericRecords);
+          await tx.update(drug).set({
+            processed_combination: sql`${drug.processed_combination} true`,
+          });
+        });
+      }
     }
   }
   await browser.close();
