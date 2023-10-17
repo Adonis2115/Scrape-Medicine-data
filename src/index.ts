@@ -174,7 +174,7 @@ async function getSingleGenericDrugs() {
             drug_id: number;
           }[] = [];
       for (const row of tableData) {
-        const price = await getPrice(row[4]!);
+        const { price } = await getPrice(row[4]!, false);
         singleGenericRecords.push({
           name: row[1],
           manufacturer: row[2],
@@ -304,8 +304,8 @@ async function getCombinationGenericDrugs() {
             drug_id: number;
           }[] = [];
       for (const row of tableData) {
-        const price = await getPrice(row[4]!);
-        const drugType = await getDrugTypeForCombination(row[4]!);
+        console.log(row[0], row[1]);
+        const { price, drugType } = await getPrice(row[4]!, true);
         combinationGenericRecords.push({
           name: row[1],
           manufacturer: row[3],
@@ -333,38 +333,28 @@ async function getCombinationGenericDrugs() {
 }
 
 // get price, stregnth, units for later
-async function getPrice(priceUrl: string) {
+async function getPrice(priceUrl: string, isCombination: boolean) {
   const browser = await puppeteer.launch({ headless: "new" });
   const page = await browser.newPage();
   await page.goto(priceUrl);
   await page.setViewport({ width: 1080, height: 1024 });
 
-  const element = await page.$(".ybox b");
-  const price = element
-    ? await element.evaluate((element) => element.textContent)
+  const elementPrice = await page.$(".ybox b");
+  const price = elementPrice
+    ? await elementPrice.evaluate((elementPrice) => elementPrice.textContent)
     : null;
-
+  let drugType: string | null = null;
+  if (isCombination) {
+    const elementType = await page.$("tr td h3");
+    drugType = elementType
+      ? await elementType.evaluate((elementType) => elementType.textContent)
+      : null;
+  }
   await browser.close();
-  return price!.replace(/,/g, "");
-}
-
-// sometimes getting type wrong. Wrong string manipulation
-async function getDrugTypeForCombination(url: string) {
-  const browser = await puppeteer.launch({ headless: "new" });
-  const page = await browser.newPage();
-  await page.goto(url);
-  await page.setViewport({ width: 1080, height: 1024 });
-  const element = await page.$("tr td h3");
-
-  const stringWithType = element
-    ? await element.evaluate((element) => element.textContent)
-    : null;
-
-  const stringWithTypeArray = stringWithType?.split(" ");
-  const drugType =
-    stringWithTypeArray![stringWithTypeArray!?.length - 1].trim();
-  await browser.close();
-  return drugType;
+  return {
+    price: price!.replace(/,/g, ""),
+    drugType: drugType ? drugType : "null",
+  };
 }
 
 (async () => {
