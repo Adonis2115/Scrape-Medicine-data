@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Placeholder, SQL, and, eq, isNotNull, sql } from "drizzle-orm";
+import { Placeholder, SQL, and, eq, isNotNull } from "drizzle-orm";
 import puppeteer from "puppeteer";
 import { db } from "./db";
 import { combination_generic, drug, single_generic } from "./db/schema";
@@ -189,7 +189,8 @@ async function getSingleGenericDrugs() {
           await tx.insert(single_generic).values(singleGenericRecords);
           await tx
             .update(drug)
-            .set({ processed_single: sql`${drug.processed_single} true` });
+            .set({ processed_single: true })
+            .where(eq(drug.id, drugRecord.id));
         });
       }
     }
@@ -320,9 +321,10 @@ async function getCombinationGenericDrugs() {
           await tx
             .insert(combination_generic)
             .values(combinationGenericRecords);
-          await tx.update(drug).set({
-            processed_combination: sql`${drug.processed_combination} true`,
-          });
+          await tx
+            .update(drug)
+            .set({ processed_combination: true })
+            .where(eq(drug.id, drugRecord.id));
         });
       }
     }
