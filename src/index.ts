@@ -168,17 +168,16 @@ async function getSingleGenericDrugs() {
         | {
             name: string | null;
             manufacturer: string | null;
-            price: string;
+            price: null;
             type: string | null;
             price_url: string | null;
             drug_id: number;
           }[] = [];
       for (const row of tableData) {
-        const { price } = await getPrice(row[4]!, false);
         singleGenericRecords.push({
           name: row[1],
           manufacturer: row[2],
-          price: price,
+          price: null,
           type: row[3],
           price_url: row[4],
           drug_id: drugRecord.id,
@@ -298,20 +297,19 @@ async function getCombinationGenericDrugs() {
             name: string | null;
             manufacturer: string | null;
             constituent_drugs: string[];
-            price: string;
-            type: string;
+            price: null;
+            type: null;
             price_url: string | null;
             drug_id: number;
           }[] = [];
       for (const row of tableData) {
         console.log(row[0], row[1]);
-        const { price, drugType } = await getPrice(row[4]!, true);
         combinationGenericRecords.push({
           name: row[1],
           manufacturer: row[3],
           constituent_drugs: row[2]!.split(/\s*?\+\s*?/),
-          price: price,
-          type: drugType,
+          price: null,
+          type: null,
           price_url: row[4],
           drug_id: drugRecord.id,
         });
@@ -346,9 +344,12 @@ async function getPrice(priceUrl: string, isCombination: boolean) {
   let drugType: string | null = null;
   if (isCombination) {
     const elementType = await page.$("tr td h3");
-    drugType = elementType
-      ? await elementType.evaluate((elementType) => elementType.textContent)
-      : null;
+    const typeString = await getTextWithNonBreakingSpace(elementType);
+    console.log(typeString);
+    const regex = /&nbsp;(\w*)&nbsp;/;
+    const match = regex.exec(typeString);
+    drugType = match ? match[1] : null;
+    console.log(drugType);
   }
   await browser.close();
   return {
@@ -362,3 +363,11 @@ async function getPrice(priceUrl: string, isCombination: boolean) {
   getSingleGenericDrugs();
   getCombinationGenericDrugs();
 })();
+
+async function getTextWithNonBreakingSpace(element: any) {
+  const text = await element.evaluate((element: any) => {
+    return element.outerHTML;
+  });
+
+  return text.replace("&nbsp;", " ");
+}
