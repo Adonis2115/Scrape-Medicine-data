@@ -5,9 +5,9 @@ import { db } from "./db";
 import { combination_generic, drug, single_generic } from "./db/schema";
 
 async function main() {
-  await db.delete(drug);
-  await db.delete(single_generic);
-  await db.delete(combination_generic);
+  // await db.delete(combination_generic);
+  // await db.delete(single_generic);
+  // await db.delete(drug);
   const browser = await puppeteer.launch({ headless: "new" });
   const page = await browser.newPage();
 
@@ -72,6 +72,8 @@ async function getDrugs(alphabet: string) {
       name: row[1],
       single_generic_url: row[3],
       combination_generic_url: row[4],
+      processed_single: !row[3] ? true : false,
+      processed_combination: !row[4] ? true : false,
     });
   }
   if (drugRecords.length) await db.insert(drug).values(drugRecords);
@@ -103,16 +105,15 @@ async function getSingleGenericDrugs() {
 
         for (const row of tableRows) {
           const rowData = [];
-
-          for (const cell of row.querySelectorAll("td")) {
-            if (cell.textContent && row.querySelectorAll("td").length > 1) {
-              if (cell.textContent.trim() === "-") rowData.push(null);
+          if (row.querySelectorAll("td").length > 1) {
+            for (const cell of row.querySelectorAll("td")) {
+              if (!cell.textContent || cell.textContent.trim() === "-")
+                rowData.push(null);
               else if (cell.textContent.trim() === "View Price")
                 rowData.push(cell.querySelector("a")!.href);
               else rowData.push(cell.textContent.replace("\n", "").trim());
             }
           }
-
           if (rowData.length > 0) {
             tableData.push(rowData);
           }
@@ -225,16 +226,15 @@ async function getCombinationGenericDrugs() {
 
         for (const row of tableRows) {
           const rowData = [];
-
-          for (const cell of row.querySelectorAll("td")) {
-            if (cell.textContent && row.querySelectorAll("td").length > 1) {
-              if (cell.textContent.trim() === "-") rowData.push(null);
+          if (row.querySelectorAll("td").length > 1) {
+            for (const cell of row.querySelectorAll("td")) {
+              if (!cell.textContent || cell.textContent.trim() === "-")
+                rowData.push(null);
               else if (cell.textContent.trim() === "View Price")
                 rowData.push(cell.querySelector("a")!.href);
               else rowData.push(cell.textContent.replace("\n", "").trim());
             }
           }
-
           if (rowData.length > 0) {
             tableData.push(rowData);
           }
@@ -359,8 +359,9 @@ async function getPrice(priceUrl: string, isCombination: boolean) {
 
 (async () => {
   // await main();
-  // await getSingleGenericDrugs();
+  await getSingleGenericDrugs();
   await getCombinationGenericDrugs();
+  console.log("Finished !!!");
 })();
 
 async function getConstituentDrugs(drugsString: string) {
@@ -381,6 +382,5 @@ async function getTextWithNonBreakingSpace(element: any) {
   const text = await element.evaluate((element: any) => {
     return element.outerHTML;
   });
-
   return text.replace("&nbsp;", " ");
 }

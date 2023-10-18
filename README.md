@@ -24,4 +24,4 @@
 3. Fetch correct type of drug for combined generic medicines.
 4. Any method to update drugs data without refetching everything. Fetch change only new and updated data.
 5. Some Constituent drugs in combination are written in "," format instead of "+"
-6. Some Drugs Does not have 1 column like manufacturer, then the price url is going to another column eg. 79th record in combination drug.
+6. Some Drugs Does not have 1 column like manufacturer (also type both in single and combination), then the price url is going to another column eg. 79th record in combination drug.

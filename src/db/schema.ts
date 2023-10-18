@@ -9,10 +9,33 @@ import {
 } from "drizzle-orm/pg-core";
 
 // export const Drug_Type = pgEnum("type", [
-//   "tablet",
-//   "capsule",
-//   "syrup",
-//   "injection",
+//   "Tablet",
+//   "Syrup",
+//   "Injection",
+//   "Cream",
+//   "Suspension",
+//   "Capsule",
+//   "Solution",
+//   "Eye/Ear Drops",
+//   "Liquid",
+//   "Eye drops",
+//   "Film coated tablet",
+//   "Topical gel",
+//   "Gel",
+//   "Drops",
+//   "Sachet",
+//   "Suppository",
+//   "Infusion",
+//   "Pessary",
+//   "Chewable tablet",
+//   "Powder",
+//   "Effervescent tablet",
+//   "Eye Ointment",
+//   "Ointment",
+//   "Respules",
+//   "Inhaler",
+//   "Rotacaps",
+//   "Transpules",
 // ]);
 
 export const drug = pgTable("drug", {
