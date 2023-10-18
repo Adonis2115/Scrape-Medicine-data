@@ -306,7 +306,7 @@ async function getCombinationGenericDrugs() {
         combinationGenericRecords.push({
           name: row[1],
           manufacturer: row[3],
-          constituent_drugs: row[2]!.split(/\s*?\+\s*?/),
+          constituent_drugs: await getConstituentDrugs(row[2]!),
           price: null,
           type: null,
           price_url: row[4],
@@ -359,9 +359,23 @@ async function getPrice(priceUrl: string, isCombination: boolean) {
 
 (async () => {
   // await main();
-  await getSingleGenericDrugs();
+  // await getSingleGenericDrugs();
   await getCombinationGenericDrugs();
 })();
+
+async function getConstituentDrugs(drugsString: string) {
+  let cleanedString = drugsString
+    .replace(/\s*\+\s*/g, "+")
+    .replace(/\++$/, "")
+    .replace(/\s+/g, " ");
+
+  // Split the cleaned string into an array of words and remove empty elements
+  let wordsArray = cleanedString
+    .split("+")
+    .map((word) => word.trim())
+    .filter((word) => word !== "");
+  return wordsArray;
+}
 
 async function getTextWithNonBreakingSpace(element: any) {
   const text = await element.evaluate((element: any) => {
