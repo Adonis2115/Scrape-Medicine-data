@@ -303,7 +303,6 @@ async function getCombinationGenericDrugs() {
             drug_id: number;
           }[] = [];
       for (const row of tableData) {
-        console.log(row[0], row[1]);
         combinationGenericRecords.push({
           name: row[1],
           manufacturer: row[3],
@@ -359,9 +358,9 @@ async function getPrice(priceUrl: string, isCombination: boolean) {
 }
 
 (async () => {
-  //   await main();
-  getSingleGenericDrugs();
-  getCombinationGenericDrugs();
+  // await main();
+  await getSingleGenericDrugs();
+  await getCombinationGenericDrugs();
 })();
 
 async function getTextWithNonBreakingSpace(element: any) {
