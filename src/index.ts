@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Placeholder, SQL, and, eq, isNotNull } from "drizzle-orm";
+import { Placeholder, SQL, and, eq, isNotNull, isNull } from "drizzle-orm";
 import puppeteer from "puppeteer";
 import { db } from "./db";
 import { combination_generic, drug, single_generic } from "./db/schema";
@@ -330,37 +330,74 @@ async function getCombinationGenericDrugs() {
 }
 
 // get price, stregnth, units for later
-async function getPrice(priceUrl: string, isCombination: boolean) {
+async function getPriceSingleDrug() {
+  const singleDrugArray = await db
+    .select()
+    .from(single_generic)
+    .where(isNull(single_generic.price));
   const browser = await puppeteer.launch({ headless: "new" });
   const page = await browser.newPage();
-  await page.goto(priceUrl);
-  await page.setViewport({ width: 1080, height: 1024 });
-
-  const elementPrice = await page.$(".ybox b");
-  const price = elementPrice
-    ? await elementPrice.evaluate((elementPrice) => elementPrice.textContent)
-    : null;
-  let drugType: string | null = null;
-  if (isCombination) {
-    const elementType = await page.$("tr td h3");
-    const typeString = await getTextWithNonBreakingSpace(elementType);
-    console.log(typeString);
-    const regex = /&nbsp;(\w*)&nbsp;/;
-    const match = regex.exec(typeString);
-    drugType = match ? match[1] : null;
-    console.log(drugType);
+  for (const singleDrug of singleDrugArray) {
+    if (singleDrug.price_url) {
+      console.log(`Single Drug ID: ${singleDrug.id}`);
+      await page.goto(singleDrug.price_url);
+      await page.setViewport({ width: 1080, height: 1024 });
+      const elementPrice = await page.$(".ybox b");
+      const priceString = elementPrice
+        ? await elementPrice.evaluate(
+            (elementPrice) => elementPrice.textContent
+          )
+        : null;
+      const price = priceString ? priceString.replace(/,/g, "") : null;
+      await db
+        .update(single_generic)
+        .set({ price: price })
+        .where(eq(single_generic.id, singleDrug.id));
+    }
   }
   await browser.close();
-  return {
-    price: price!.replace(/,/g, ""),
-    drugType: drugType ? drugType : "null",
-  };
+}
+
+async function getPriceCombinationeDrug() {
+  const combinationDrugArray = await db
+    .select()
+    .from(combination_generic)
+    .where(isNull(combination_generic.price));
+  const browser = await puppeteer.launch({ headless: "new" });
+  const page = await browser.newPage();
+  for (const combinationDrug of combinationDrugArray) {
+    if (combinationDrug.price_url) {
+      console.log(`Combination Drug ID: ${combinationDrug.id}`);
+      await page.goto(combinationDrug.price_url);
+      await page.setViewport({ width: 1080, height: 1024 });
+
+      const elementPrice = await page.$(".ybox b");
+      const priceString = elementPrice
+        ? await elementPrice.evaluate(
+            (elementPrice) => elementPrice.textContent
+          )
+        : null;
+      const price = priceString ? priceString.replace(/,/g, "") : null;
+      const elementType = await page.$("tr td h3");
+      const typeString =
+        elementType &&
+        (await elementType.evaluate((element) => element.outerHTML));
+      const drugType = getWord2(typeString!);
+      await db
+        .update(combination_generic)
+        .set({ price: price, type: drugType })
+        .where(eq(combination_generic.id, combinationDrug.id));
+    }
+  }
+  await browser.close();
 }
 
 (async () => {
   // await main();
-  await getSingleGenericDrugs();
-  await getCombinationGenericDrugs();
+  // await getSingleGenericDrugs();
+  // await getCombinationGenericDrugs();
+  // await getPriceSingleDrug();
+  await getPriceCombinationeDrug();
   console.log("Finished !!!");
 })();
 
@@ -369,8 +406,6 @@ async function getConstituentDrugs(drugsString: string) {
     .replace(/\s*\+\s*/g, "+")
     .replace(/\++$/, "")
     .replace(/\s+/g, " ");
-
-  // Split the cleaned string into an array of words and remove empty elements
   let wordsArray = cleanedString
     .split("+")
     .map((word) => word.trim())
@@ -378,9 +413,16 @@ async function getConstituentDrugs(drugsString: string) {
   return wordsArray;
 }
 
-async function getTextWithNonBreakingSpace(element: any) {
-  const text = await element.evaluate((element: any) => {
-    return element.outerHTML;
-  });
-  return text.replace("&nbsp;", " ");
+function getWord2(string: string) {
+  const index1st = string.indexOf("&nbsp;&nbsp;");
+  const after1st = string.substring(index1st + "&nbsp;&nbsp;".length);
+  if (after1st.includes("&nbsp;&nbsp;")) {
+    const index2nd = after1st.indexOf("&nbsp;&nbsp;");
+    const before2nd = after1st.substring(0, index2nd);
+    return before2nd;
+  } else {
+    const index2nd = after1st.indexOf("</h3>");
+    const before2nd = after1st.substring(0, index2nd);
+    return before2nd;
+  }
 }
