@@ -27,3 +27,4 @@
 6. Some Drugs Does not have 1 column like manufacturer (also type both in single and combination), then the price url is going to another column eg. 79th record in combination drug.
 7. Use Multiple Containers & Kubernetes to speed up data extraction.
 8. Time out for url navigation maybe because of internet connection.
+9. Use Worker-threads

@@ -5,9 +5,6 @@ import { db } from "./db";
 import { combination_generic, drug, single_generic } from "./db/schema";
 
 async function main() {
-  // await db.delete(combination_generic);
-  // await db.delete(single_generic);
-  // await db.delete(drug);
   const browser = await puppeteer.launch({ headless: "new" });
   const page = await browser.newPage();
 
@@ -24,32 +21,24 @@ async function main() {
 
   if (listItems.length && listItems[0] !== null) {
     for (const alphabetIndex of listItems) {
-      if (alphabetIndex) await getDrugs(alphabetIndex); // await is important else too many connections to db and not in order.
+      if (alphabetIndex) await getDrugs(alphabetIndex);
     }
   }
   await browser.close();
 }
 
-// function to get all drugs from a-z page
 async function getDrugs(alphabet: string) {
   const browser = await puppeteer.launch({ headless: "new" });
   const page = await browser.newPage();
-
   await page.goto(`${process.env.SOURCEURL}?alpha=${alphabet.toLowerCase()}`);
-
   await page.setViewport({ width: 1080, height: 1024 });
-
   const tableData = await page.evaluate(() => {
     const table = document.querySelector(".dptbl");
     const tableData = [];
-
-    // Skip the first element which is the table head
     const tableRows = table ? Array.from(table.querySelectorAll("tr")) : [];
     tableRows.shift();
-
     for (const row of tableRows) {
       const rowData = [];
-
       for (const cell of row.querySelectorAll("td")) {
         if (cell.textContent && row.querySelectorAll("td").length > 1) {
           if (cell.textContent.trim() === "-") rowData.push(null);
@@ -58,12 +47,10 @@ async function getDrugs(alphabet: string) {
           else rowData.push(cell.textContent.replace("\n", "").trim());
         }
       }
-
       if (rowData.length > 0) {
         tableData.push(rowData);
       }
     }
-
     return tableData;
   });
   let drugRecords = [];
@@ -98,11 +85,8 @@ async function getSingleGenericDrugs() {
       const tableData = await page.evaluate(() => {
         const table = document.querySelector(".tblgrn");
         const tableData = [];
-
-        // Skip the first element which is the table head
         const tableRows = table ? Array.from(table.querySelectorAll("tr")) : [];
         tableRows.shift();
-
         for (const row of tableRows) {
           const rowData = [];
           if (row.querySelectorAll("td").length > 1) {
@@ -118,7 +102,6 @@ async function getSingleGenericDrugs() {
             tableData.push(rowData);
           }
         }
-
         return tableData;
       });
       let singleGenericRecords:
@@ -219,11 +202,8 @@ async function getCombinationGenericDrugs() {
       const tableData = await page.evaluate(() => {
         const table = document.querySelector(".tblgrn");
         const tableData = [];
-
-        // Skip the first element which is the table head
         const tableRows = table ? Array.from(table.querySelectorAll("tr")) : [];
         tableRows.shift();
-
         for (const row of tableRows) {
           const rowData = [];
           if (row.querySelectorAll("td").length > 1) {
@@ -239,7 +219,6 @@ async function getCombinationGenericDrugs() {
             tableData.push(rowData);
           }
         }
-
         return tableData;
       });
       let combinationGenericRecords:
@@ -340,19 +319,23 @@ async function getPriceSingleDrug() {
   for (const singleDrug of singleDrugArray) {
     if (singleDrug.price_url) {
       console.log(`Single Drug ID: ${singleDrug.id}`);
-      await page.goto(singleDrug.price_url);
-      await page.setViewport({ width: 1080, height: 1024 });
-      const elementPrice = await page.$(".ybox b");
-      const priceString = elementPrice
-        ? await elementPrice.evaluate(
-            (elementPrice) => elementPrice.textContent
-          )
-        : null;
-      const price = priceString ? priceString.replace(/,/g, "") : null;
-      await db
-        .update(single_generic)
-        .set({ price: price })
-        .where(eq(single_generic.id, singleDrug.id));
+      try {
+        await page.goto(singleDrug.price_url);
+        await page.setViewport({ width: 1080, height: 1024 });
+        const elementPrice = await page.$(".ybox b");
+        const priceString = elementPrice
+          ? await elementPrice.evaluate(
+              (elementPrice) => elementPrice.textContent
+            )
+          : null;
+        const price = priceString ? priceString.replace(/,/g, "") : null;
+        await db
+          .update(single_generic)
+          .set({ price: price })
+          .where(eq(single_generic.id, singleDrug.id));
+      } catch (error) {
+        console.log("Check Internet Connection, Can't load URL !");
+      }
     }
   }
   await browser.close();
@@ -368,25 +351,28 @@ async function getPriceCombinationeDrug() {
   for (const combinationDrug of combinationDrugArray) {
     if (combinationDrug.price_url) {
       console.log(`Combination Drug ID: ${combinationDrug.id}`);
-      await page.goto(combinationDrug.price_url);
-      await page.setViewport({ width: 1080, height: 1024 });
-
-      const elementPrice = await page.$(".ybox b");
-      const priceString = elementPrice
-        ? await elementPrice.evaluate(
-            (elementPrice) => elementPrice.textContent
-          )
-        : null;
-      const price = priceString ? priceString.replace(/,/g, "") : null;
-      const elementType = await page.$("tr td h3");
-      const typeString =
-        elementType &&
-        (await elementType.evaluate((element) => element.outerHTML));
-      const drugType = getWord2(typeString!);
-      await db
-        .update(combination_generic)
-        .set({ price: price, type: drugType })
-        .where(eq(combination_generic.id, combinationDrug.id));
+      try {
+        await page.goto(combinationDrug.price_url);
+        await page.setViewport({ width: 1080, height: 1024 });
+        const elementPrice = await page.$(".ybox b");
+        const priceString = elementPrice
+          ? await elementPrice.evaluate(
+              (elementPrice) => elementPrice.textContent
+            )
+          : null;
+        const price = priceString ? priceString.replace(/,/g, "") : null;
+        const elementType = await page.$("tr td h3");
+        const typeString =
+          elementType &&
+          (await elementType.evaluate((element) => element.outerHTML));
+        const drugType = getDrugType(typeString!);
+        await db
+          .update(combination_generic)
+          .set({ price: price, type: drugType })
+          .where(eq(combination_generic.id, combinationDrug.id));
+      } catch (error) {
+        console.log("Check Internet Connection, Can't load URL !");
+      }
     }
   }
   await browser.close();
@@ -413,7 +399,7 @@ async function getConstituentDrugs(drugsString: string) {
   return wordsArray;
 }
 
-function getWord2(string: string) {
+function getDrugType(string: string) {
   const index1st = string.indexOf("&nbsp;&nbsp;");
   const after1st = string.substring(index1st + "&nbsp;&nbsp;".length);
   if (after1st.includes("&nbsp;&nbsp;")) {
