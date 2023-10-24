@@ -382,7 +382,7 @@ async function getPriceCombinationeDrug() {
   // await main();
   // await getSingleGenericDrugs();
   // await getCombinationGenericDrugs();
-  // await getPriceSingleDrug();
+  await getPriceSingleDrug();
   await getPriceCombinationeDrug();
   console.log("Finished !!!");
 })();

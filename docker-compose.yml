@@ -1,0 +1,28 @@
+version: "3"
+name: medicine-data
+services:
+  app:
+    build: .
+    environment:
+      - CONNECTIONSTRING=postgresql://adonis:2110@postgres:5432/postgres
+      - SOURCEURL="https://www.medindia.net/drug-price/index.asp"
+    cap_add:
+      - SYS_ADMIN
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:alpine
+    volumes:
+      - data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: adonis
+      POSTGRES_PASSWORD: 2110
+      POSTGRES_DB: postgres
+    ports:
+      - 5432:5432
+
+volumes:
+  data:
+    external:
+      name: pgdata
