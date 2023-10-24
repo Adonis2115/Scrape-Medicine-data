@@ -334,7 +334,7 @@ async function getPriceSingleDrug() {
           .set({ price: price })
           .where(eq(single_generic.id, singleDrug.id));
       } catch (error) {
-        console.log("Check Internet Connection, Can't load URL !");
+        await checkInternetConnection();
       }
     }
   }
@@ -371,7 +371,7 @@ async function getPriceCombinationeDrug() {
           .set({ price: price, type: drugType })
           .where(eq(combination_generic.id, combinationDrug.id));
       } catch (error) {
-        console.log("Check Internet Connection, Can't load URL !");
+        await checkInternetConnection();
       }
     }
   }
@@ -410,5 +410,16 @@ function getDrugType(string: string) {
     const index2nd = after1st.indexOf("</h3>");
     const before2nd = after1st.substring(0, index2nd);
     return before2nd;
+  }
+}
+
+async function checkInternetConnection() {
+  try {
+    await fetch("https://google.com");
+    return;
+  } catch (error) {
+    console.log("Check Internet Connection, Can't load URL !");
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    await checkInternetConnection();
   }
 }
