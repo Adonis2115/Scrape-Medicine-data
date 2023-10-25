@@ -314,8 +314,8 @@ async function getPriceSingleDrug() {
     .select()
     .from(single_generic)
     .where(isNull(single_generic.price));
-  const browser = await puppeteer.launch({ headless: "new" });
-  const page = await browser.newPage();
+  let browser = await puppeteer.launch({ headless: "new" });
+  let page = await browser.newPage();
   for (const singleDrug of singleDrugArray) {
     if (singleDrug.price_url) {
       console.log(`Single Drug ID: ${singleDrug.id}`);
@@ -329,10 +329,18 @@ async function getPriceSingleDrug() {
             )
           : null;
         const price = priceString ? priceString.replace(/,/g, "") : null;
-        await db
-          .update(single_generic)
-          .set({ price: price })
-          .where(eq(single_generic.id, singleDrug.id));
+        if (price) {
+          await db
+            .update(single_generic)
+            .set({ price: price })
+            .where(eq(single_generic.id, singleDrug.id));
+        } else {
+          console.log(`Single Drug ID: ${singleDrug.id} & Price: ${price}`);
+          console.log("Closing Browser & Launching again !");
+          await browser.close();
+          browser = await puppeteer.launch({ headless: "new" });
+          page = await browser.newPage();
+        }
       } catch (error) {
         await checkInternetConnection();
       }
@@ -346,8 +354,8 @@ async function getPriceCombinationeDrug() {
     .select()
     .from(combination_generic)
     .where(isNull(combination_generic.price));
-  const browser = await puppeteer.launch({ headless: "new" });
-  const page = await browser.newPage();
+  let browser = await puppeteer.launch({ headless: "new" });
+  let page = await browser.newPage();
   for (const combinationDrug of combinationDrugArray) {
     if (combinationDrug.price_url) {
       console.log(`Combination Drug ID: ${combinationDrug.id}`);
@@ -366,10 +374,20 @@ async function getPriceCombinationeDrug() {
           elementType &&
           (await elementType.evaluate((element) => element.outerHTML));
         const drugType = getDrugType(typeString!);
-        await db
-          .update(combination_generic)
-          .set({ price: price, type: drugType })
-          .where(eq(combination_generic.id, combinationDrug.id));
+        if (price) {
+          await db
+            .update(combination_generic)
+            .set({ price: price, type: drugType })
+            .where(eq(combination_generic.id, combinationDrug.id));
+        } else {
+          console.log(
+            `Single Drug ID: ${combinationDrug.id} & Price: ${price}`
+          );
+          console.log("Closing Browser & Launching again !");
+          await browser.close();
+          browser = await puppeteer.launch({ headless: "new" });
+          page = await browser.newPage();
+        }
       } catch (error) {
         await checkInternetConnection();
       }
