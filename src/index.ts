@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Placeholder, SQL, and, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, type InferInsertModel } from "drizzle-orm";
 import puppeteer from "puppeteer";
 import { db } from "./db";
 import { combination_generic, drug, single_generic } from "./db/schema";
@@ -104,59 +104,7 @@ async function getSingleGenericDrugs() {
         }
         return tableData;
       });
-      let singleGenericRecords:
-        | {
-            id?: number | SQL<unknown> | Placeholder<string, any> | undefined;
-            name?:
-              | string
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-            createdAt?:
-              | SQL<unknown>
-              | Date
-              | Placeholder<string, any>
-              | undefined;
-            manufacturer?:
-              | string
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-            price?:
-              | string
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-            type?:
-              | string
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-            price_url?:
-              | string
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-            drug_id?:
-              | number
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-          }[]
-        | {
-            name: string | null;
-            manufacturer: string | null;
-            price: null;
-            type: string | null;
-            price_url: string | null;
-            drug_id: number;
-          }[] = [];
+      let singleGenericRecords: InferInsertModel<typeof single_generic>[] = [];
       for (const row of tableData) {
         singleGenericRecords.push({
           name: row[1],
@@ -221,66 +169,9 @@ async function getCombinationGenericDrugs() {
         }
         return tableData;
       });
-      let combinationGenericRecords:
-        | {
-            id?: number | SQL<unknown> | Placeholder<string, any> | undefined;
-            name?:
-              | string
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-            createdAt?:
-              | SQL<unknown>
-              | Date
-              | Placeholder<string, any>
-              | undefined;
-            manufacturer?:
-              | string
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-            price?:
-              | string
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-            type?:
-              | string
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-            price_url?:
-              | string
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-            drug_id?:
-              | number
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-            constituent_drugs?:
-              | string[]
-              | SQL<unknown>
-              | Placeholder<string, any>
-              | null
-              | undefined;
-          }[]
-        | {
-            name: string | null;
-            manufacturer: string | null;
-            constituent_drugs: string[];
-            price: null;
-            type: null;
-            price_url: string | null;
-            drug_id: number;
-          }[] = [];
+      let combinationGenericRecords: InferInsertModel<
+        typeof combination_generic
+      >[] = [];
       for (const row of tableData) {
         combinationGenericRecords.push({
           name: row[1],
