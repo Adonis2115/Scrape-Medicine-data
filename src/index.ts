@@ -211,24 +211,30 @@ async function getPriceSingleDrug() {
     if (singleDrug.price_url) {
       console.log(`Single Drug ID: ${singleDrug.id}`);
       try {
-        await page.goto(singleDrug.price_url);
-        await page.setViewport({ width: 1080, height: 1024 });
-        const elementPrice = await page.$(".ybox b");
-        const priceString = elementPrice
-          ? await elementPrice.evaluate(
-              (elementPrice) => elementPrice.textContent
-            )
-          : null;
-        const price = priceString ? priceString.replace(/,/g, "") : null;
-        if (price) {
-          await db
-            .update(single_generic)
-            .set({ price: price })
-            .where(eq(single_generic.id, singleDrug.id));
+        if (browser.connected) {
+          await page.goto(singleDrug.price_url); // it's possible that browser is crashed or closed so no records to fetch.
+          await page.setViewport({ width: 1080, height: 1024 });
+          const elementPrice = await page.$(".ybox b");
+          const priceString = elementPrice
+            ? await elementPrice.evaluate(
+                (elementPrice) => elementPrice.textContent
+              )
+            : null;
+          const price = priceString ? priceString.replace(/,/g, "") : null;
+          if (price) {
+            await db
+              .update(single_generic)
+              .set({ price: price })
+              .where(eq(single_generic.id, singleDrug.id));
+          } else {
+            console.log(`Single Drug ID: ${singleDrug.id} & Price: ${price}`);
+            console.log("Closing Browser & Launching again !");
+            await browser.close();
+            browser = await puppeteer.launch({ headless: "new" });
+            page = await browser.newPage();
+          }
         } else {
-          console.log(`Single Drug ID: ${singleDrug.id} & Price: ${price}`);
-          console.log("Closing Browser & Launching again !");
-          await browser.close();
+          console.log("Broswer Crashed, Launching again...");
           browser = await puppeteer.launch({ headless: "new" });
           page = await browser.newPage();
         }
@@ -251,31 +257,37 @@ async function getPriceCombinationeDrug() {
     if (combinationDrug.price_url) {
       console.log(`Combination Drug ID: ${combinationDrug.id}`);
       try {
-        await page.goto(combinationDrug.price_url);
-        await page.setViewport({ width: 1080, height: 1024 });
-        const elementPrice = await page.$(".ybox b");
-        const priceString = elementPrice
-          ? await elementPrice.evaluate(
-              (elementPrice) => elementPrice.textContent
-            )
-          : null;
-        const price = priceString ? priceString.replace(/,/g, "") : null;
-        const elementType = await page.$("tr td h3");
-        const typeString =
-          elementType &&
-          (await elementType.evaluate((element) => element.outerHTML));
-        const drugType = getDrugType(typeString!);
-        if (price) {
-          await db
-            .update(combination_generic)
-            .set({ price: price, type: drugType })
-            .where(eq(combination_generic.id, combinationDrug.id));
+        if (browser.connected) {
+          await page.goto(combinationDrug.price_url);
+          await page.setViewport({ width: 1080, height: 1024 });
+          const elementPrice = await page.$(".ybox b");
+          const priceString = elementPrice
+            ? await elementPrice.evaluate(
+                (elementPrice) => elementPrice.textContent
+              )
+            : null;
+          const price = priceString ? priceString.replace(/,/g, "") : null;
+          const elementType = await page.$("tr td h3");
+          const typeString =
+            elementType &&
+            (await elementType.evaluate((element) => element.outerHTML));
+          const drugType = getDrugType(typeString!);
+          if (price) {
+            await db
+              .update(combination_generic)
+              .set({ price: price, type: drugType })
+              .where(eq(combination_generic.id, combinationDrug.id));
+          } else {
+            console.log(
+              `Single Drug ID: ${combinationDrug.id} & Price: ${price}`
+            );
+            console.log("Closing Browser & Launching again !");
+            await browser.close();
+            browser = await puppeteer.launch({ headless: "new" });
+            page = await browser.newPage();
+          }
         } else {
-          console.log(
-            `Single Drug ID: ${combinationDrug.id} & Price: ${price}`
-          );
-          console.log("Closing Browser & Launching again !");
-          await browser.close();
+          console.log("Broswer Crashed, Launching again...");
           browser = await puppeteer.launch({ headless: "new" });
           page = await browser.newPage();
         }
